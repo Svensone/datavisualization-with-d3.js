@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    
+    <title>FCC Bar Chart Project</title>
+
+
+    <link href='https://fonts.googleapis.com/css?family=Roboto:300|Open+Sans' rel='stylesheet' type='text/css'>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+
+    <link rel="stylesheet" href="style.css" />
+
+  </head>
+
+
+  <body>
+    <div class="main">
+      <div class="container">
+        <div id="title">GDP of the United States</div>
+        <div class="visHolder"></div>
+      </div>
+    </div>
+
+
+    <script>
+        // ----------- Basic Variables ----------- //
+
+      var width = 800;
+      var height = 400;
+      var barWidth = width/275;
+      var yMargin = 40;
+
+      var animateDelay = 5;
+
+        // -----------Main SVG ----------- //
+
+      var svgContainer = d3.select(".visHolder")
+        .append("svg")
+        .attr("width", width + 100)
+        .attr("height", height + 60)
+        .style("background", "white")
+        .style('opacity', 0.7);
+    
+    var overlay = d3.select('.visHolder').append('div')
+            .attr('class', 'overlay')
+            .style('opacity', 0);
+
+    var tooltip = d3.select('.visHolder').append('div')
+            .attr('id', 'tooltip')
+            .style('opacity', 0);
+
+         // ----------- Visual Elements ----------- //
+         svgContainer
+          .append("text")
+          .attr('transform', 'rotate(-90)')
+          .attr("x", -300)
+          .attr("y", 80)
+          .text("Gross Domestic Product of the US");
+
+        svgContainer.append('text')
+            .attr('x', 80)
+            .attr('y', 450)
+            .text('Sir David Attenborough: Someone who believes in infinte growth is either a madman or an economist')
+            .style('fill', 'orange')
+        
+        // ----------- Data Gathering (JSON) & manipulation ----------- //
+
+        d3.json('https://raw.githubusercontent.com/FreeCodeCamp/ProjectReferenceData/master/GDP-data.json')
+            .then(function(data) {
+
+        // -----------  x-Axis - Time Scale  ----------- //
+
+            var yearsDate = data.data.map((item) => new Date(item[0]));
+            
+            var years = data.data.map(item => (item[0].substring(0, 4) + " " + (item[0].substring(5, 7))) );
+            
+
+            var xTimeMax = new Date(d3.max(yearsDate));
+            var xTimeMin = d3.min(yearsDate);
+           
+            var xScale = d3.scaleTime()
+                .domain([xTimeMin, xTimeMax])
+                .range([0, width]);
+            
+            var xAxis = d3.axisBottom()
+                            .scale(xScale);
+
+            svgContainer.append('g')
+                .call(xAxis)
+                .attr('id', 'x-axis')
+                .attr('transform', 'translate(60, 400)')
+
+        // -----------  GDP values & diagram  ----------- //
+                
+            var GDP = data.data.map(item => item[1]);
+
+            var gdpMin = d3.min(GDP);
+            var gdpMax = d3.max(GDP);
+
+            var yScale = d3.scaleLinear()
+                .domain([0, gdpMax])
+                .range([0, height]);
+
+            var scaledGDP = GDP.map(item => yScale(item));
+            
+            var myChart = svgContainer.selectAll('rect')
+                .data(scaledGDP)
+                .enter()
+                .append('rect')
+                    .attr('data-date', (d, i) => data.data[i][0])
+                    .attr('data-gdp', (d, i) => data.data[i][1])
+                    .attr('class', 'bar')
+                    .attr('x', (d, i) => xScale(yearsDate[i]))
+                    .attr('y', height)
+                    .attr('width', barWidth)
+                    .attr('height', 0)
+                    .style('fill', 'black')
+                    .attr('transform', 'translate(60, 0)')
+                    .on('mouseover', function(d, i){
+                        overlay.transition()
+                            .duration(0)
+                            .style('height', d + "px")
+                            .style('width', (800/275) + "px")
+                            .style('opacity', .8)
+                            .style('left', (i * barWidth) + 0 + 'px')
+                            .style('top', height - d + 'px')
+                            .style('transform', 'translateX(60px)');
+
+                        tooltip.transition()
+                            .duration(200)
+                            .style('opacity', .8);
+
+                        tooltip.html(years[i] + '<br>' + '$' + GDP[i] + ' Billion')
+                            .attr('data-date', data.data[i][0])
+                            .style('left', (i * barWidth) + 30 + 'px')
+                            .style('top', height - 100 + 'px')
+                            .style('transform', 'translateX(60px)');
+                    })
+                    .on('mouseout', function(d, i){
+                        overlay.transition()
+                            .duration(200)
+                            .style('opacity', 0)
+                        tooltip.transition()
+                            .duration(200)
+                            .style('opacity', 0);
+                    });
+                
+        // -----------  Animation  ----------- //
+
+                myChart.transition()
+                    .attr('height', (d) => d)
+                    .attr('y', (d) => height - d)
+                    .delay((d, i) => i * animateDelay)
+
+
+        // -----------  y-Axis  ----------- //
+
+            var yAxisScale = d3.scaleLinear()
+                .domain([0, gdpMax])
+                .range([ height, 0]);
+
+            var yAxis = d3.axisLeft(yAxisScale)
+                
+
+            svgContainer.append('g')
+                .call(yAxis)
+                .attr('transform', 'translate(60, 0)')
+                .attr('id', 'y-axis');
+       
+        });
+    </script>
+        <script src="https://cdn.freecodecamp.org/testable-projects-fcc/v1/bundle.js"></script>
+
+  </body>
+</html>
